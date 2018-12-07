@@ -1,5 +1,6 @@
 use ::kdtree::*;
 
+#[derive(Clone, Copy)]
 pub struct Bounds {
     pub bounds: [(f64, f64); 3],
 
@@ -8,7 +9,7 @@ pub struct Bounds {
 }
 
 impl Bounds {
-    pub fn new_from_points<T: KdtreePointTrait>(points: &[T]) -> Bounds {
+    pub fn new_from_points<T: KdTreePoint>(points: &[T]) -> Bounds {
         let mut bounds = Bounds {
             bounds: [(0., 0.), (0., 0.), (0., 0.)],
             widest_dim: 0,
@@ -45,6 +46,7 @@ impl Bounds {
             bounds: self.bounds.clone(),
             ..*self
         };
+
         cloned.bounds[dimension].1 = value;
 
         cloned.calculate_variables();

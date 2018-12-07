@@ -1,6 +1,6 @@
-use super::KdtreePointTrait;
+use super::KdTreePoint;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Point3WithId {
     dims: [f64; 3],
     pub id: i32,
@@ -15,14 +15,14 @@ impl Point3WithId {
     }
 }
 
-impl KdtreePointTrait for Point3WithId {
+impl KdTreePoint for Point3WithId {
     #[inline]
     fn dims(&self) -> &[f64] {
         return &self.dims;
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Point2WithId {
     dims: [f64; 2],
     pub id: i32,
@@ -37,14 +37,14 @@ impl Point2WithId {
     }
 }
 
-impl KdtreePointTrait for Point2WithId {
+impl KdTreePoint for Point2WithId {
     #[inline]
     fn dims(&self) -> &[f64] {
         return &self.dims;
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Point1WithId {
     dims: [f64; 1],
     pub id: i32,
@@ -59,7 +59,7 @@ impl Point1WithId {
     }
 }
 
-impl KdtreePointTrait for Point1WithId {
+impl KdTreePoint for Point1WithId {
     #[inline]
     fn dims(&self) -> &[f64] {
         return &self.dims;
