@@ -11,7 +11,7 @@ fn gen_random() -> f64 {
     rand::thread_rng().gen_range(0., 1000.)
 }
 
-fn find_nn_with_linear_search(points : &Vec<Point3WithId>, find_for : Point3WithId) -> &Point3WithId {
+fn find_nn_with_linear_search(points : &Vec<Point3WithId>, find_for : Point3WithId) -> (f64, &Point3WithId) {
     let mut best_found_distance =  squared_euclidean(find_for.dims(), points[0].dims());
     let mut closed_found_point = &points[0];
 
@@ -24,17 +24,17 @@ fn find_nn_with_linear_search(points : &Vec<Point3WithId>, find_for : Point3With
         }
     }
 
-    closed_found_point
+    (best_found_distance, closed_found_point)
 }
 
-fn find_neigbours_with_linear_search(points : &Vec<Point3WithId>, find_for : Point3WithId, dist: f64) -> Vec<&Point3WithId> {
+fn find_neigbours_with_linear_search(points : &Vec<Point3WithId>, find_for : Point3WithId, dist: f64) -> Vec<(f64, &Point3WithId)> {
     let mut result = Vec::new();
 
     for p in points {
         let d = squared_euclidean(find_for.dims(), p.dims());
 
         if d <= dist {
-            result.push(p);
+            result.push((d, p));
         }
     }
 
@@ -64,7 +64,7 @@ fn test_against_1000_random_points() {
     for i in 0 .. point_count {
         let p = &points[i];
 
-        assert_eq!(p.id, tree.nearest_search(p).id );
+        assert_eq!(p.id, tree.nearest_search(p).1.id );
     }
 
     //test randomly generated points within the cube. and do the linear search. should match
@@ -74,7 +74,7 @@ fn test_against_1000_random_points() {
         let found_by_linear_search = find_nn_with_linear_search(&points, p);
         let point_found_by_kdtree = tree.nearest_search(&p);
 
-        assert_eq!(point_found_by_kdtree.id, found_by_linear_search.id);
+        assert_eq!(point_found_by_kdtree.1.id, found_by_linear_search.1.id);
     }
 }
 
@@ -97,14 +97,14 @@ fn test_incrementally_build_tree_against_built_at_once() {
     for i in 0 .. point_count {
         let p = &points[i];
 
-        assert_eq!(tree_built_at_once.nearest_search(p).id, tree_built_incrementally.nearest_search(p).id);
+        assert_eq!(tree_built_at_once.nearest_search(p).1.id, tree_built_incrementally.nearest_search(p).1.id);
     }
 
 
     //test randomly generated points within the cube. and do the linear search. should match
     for _ in 0 .. 5000 {
         let p = Point3WithId::new(0i32, gen_random(), gen_random(), gen_random());
-        assert_eq!(tree_built_at_once.nearest_search(&p).id, tree_built_incrementally.nearest_search(&p).id);
+        assert_eq!(tree_built_at_once.nearest_search(&p).1.id, tree_built_incrementally.nearest_search(&p).1.id);
     }
 }
 
@@ -125,8 +125,8 @@ fn test_neighbour_search_with_distance() {
         assert_eq!(found_by_linear_search.len(), point_found_by_kdtree.len());
 
         if point_found_by_kdtree.len() > 0 {
-            found_by_linear_search.sort_by(|a, b| a.id.cmp(&b.id));
-            point_found_by_kdtree.sort_by(|a, b| a.id.cmp(&b.id));
+            found_by_linear_search.sort_by(|a, b| a.1.id.cmp(&b.1.id));
+            point_found_by_kdtree.sort_by(|a, b| a.1.id.cmp(&b.1.id));
         }
 
         assert_eq!(point_found_by_kdtree, found_by_linear_search);

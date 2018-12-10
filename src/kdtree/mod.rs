@@ -32,7 +32,7 @@ pub struct NearestNeighboursIter<'a, 'b, T> {
 impl<'a, 'b, T> Iterator for NearestNeighboursIter<'a, 'b, T>
     where T: KdTreePoint
 {
-    type Item = &'a T;
+    type Item = (f64, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         let p = self.ref_node;
@@ -54,8 +54,9 @@ impl<'a, 'b, T> Iterator for NearestNeighboursIter<'a, 'b, T>
                     self.node_stack.push(idx);
                 }
 
-                if p.dist(&node.point) <= self.range {
-                    return Some(&node.point);
+                let dist = p.dist(&node.point);
+                if dist <= self.range {
+                    return Some((dist, &node.point));
                 }
             } else if point_splitting_dim_value <= splitting_value {
                 if let Some(idx) = node.left_node {
@@ -115,13 +116,13 @@ impl<KP: KdTreePoint> KdTree<KP> {
         self.rebuild_tree(&mut points);
     }
 
-    pub fn nearest_search(&self, node: &KP) -> KP {
+    pub fn nearest_search(&self, node: &KP) -> (f64, &KP) {
         let mut nearest_neighbor = 0usize;
         let mut best_distance = self.nodes[0].point.dist(&node);
 
         self.nearest_search_impl(node, 0usize, &mut best_distance, &mut nearest_neighbor);
 
-        self.nodes[nearest_neighbor].point
+        (best_distance, &self.nodes[nearest_neighbor].point)
     }
 
     pub fn nearest_search_dist<'a, 'b>(&'a self, node: &'b KP, dist: f64) -> NearestNeighboursIter<'a, 'b, KP> {
@@ -143,7 +144,7 @@ impl<KP: KdTreePoint> KdTree<KP> {
     }
 
     pub fn distance_squared_to_nearest(&self, node: &KP) -> f64 {
-        self.nearest_search(node).dist(&node)
+        self.nearest_search(node).0
     }
 
     pub fn insert_nodes_and_rebuild(&mut self, nodes_to_add : &mut [KP]) {
@@ -354,9 +355,9 @@ mod tests {
             let tree = KdTree::new(&mut point_vec.clone());
 
             for p in &point_vec {
-                let found_nn = tree.nearest_search(p);
+                let found_nn = tree.nearest_search(p).1;
 
-                assert_eq!(p.id,found_nn.id);
+                assert_eq!(p.id, found_nn.id);
             }
 
             true
