@@ -22,20 +22,20 @@ pub trait KdTreePoint: Copy + PartialEq {
     }
 }
 
-pub struct NearestNeighboursIter<'a, 'b, T> {
+pub struct NearestNeighboursIter<'a, T> {
     range: f64,
     kdtree: &'a KdTree<T>,
-    ref_node: &'b T,
+    ref_node: T,
     node_stack: Vec<usize>,
 }
 
-impl<'a, 'b, T> Iterator for NearestNeighboursIter<'a, 'b, T>
+impl<'a, T> Iterator for NearestNeighboursIter<'a, T>
     where T: KdTreePoint
 {
     type Item = (f64, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let p = self.ref_node;
+        let p = &self.ref_node;
 
         loop {
             let node_idx = self.node_stack.pop()?;
@@ -130,13 +130,13 @@ impl<KP: KdTreePoint> KdTree<KP> {
         (best_distance, &self.nodes[nearest_neighbor].point)
     }
 
-    pub fn nearest_search_dist<'a, 'b>(&'a self, node: &'b KP, dist: f64) -> NearestNeighboursIter<'a, 'b, KP> {
+    pub fn nearest_search_dist(&self, node: KP, dist: f64) -> NearestNeighboursIter<'_, KP> {
         let mut node_stack = Vec::with_capacity(16);
         node_stack.push(0);
 
         NearestNeighboursIter {
             range: dist,
-            kdtree: &self,
+            kdtree: self,
             ref_node: node,
             node_stack,
         }

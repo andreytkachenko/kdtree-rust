@@ -120,7 +120,7 @@ fn test_neighbour_search_with_distance() {
         let p = Point3WithId::new(0i32, gen_random(), gen_random(), gen_random());
 
         let mut found_by_linear_search = find_neigbours_with_linear_search(&points, p, dist * dist);
-        let mut point_found_by_kdtree: Vec<_> = tree.nearest_search_dist(&p, dist * dist).collect();
+        let mut point_found_by_kdtree: Vec<_> = tree.nearest_search_dist(p, dist * dist).collect();
 
         assert_eq!(found_by_linear_search.len(), point_found_by_kdtree.len());
 
