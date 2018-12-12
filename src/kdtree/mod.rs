@@ -80,17 +80,22 @@ pub struct KdTree<KP> {
 }
 
 impl<KP: KdTreePoint> KdTree<KP> {
+    #[inline]
+    pub fn empty() -> Self {
+        KdTree {
+            nodes: vec![],
+            node_adding_dimension: 0,
+            node_depth_during_last_rebuild: 0,
+            current_node_depth: 0,
+        }
+    }
+
     pub fn new(mut points: &mut [KP]) -> Self {
         if points.len() == 0 {
             panic!("empty vector point not allowed");
         }
 
-        let mut tree = KdTree {
-            nodes: vec![],
-            node_adding_dimension: 0,
-            node_depth_during_last_rebuild: 0,
-            current_node_depth: 0,
-        };
+        let mut tree = Self::empty();
 
         tree.rebuild_tree(&mut points);
 
