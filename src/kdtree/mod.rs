@@ -10,7 +10,7 @@ use self::distance::*;
 use std::cmp;
 
 pub trait KdTreePoint: Copy + PartialEq {
-    fn dist_1d(left: f64, right: f64, dim: usize) -> f64 {
+    fn dist_1d(left: f64, right: f64, _dim: usize) -> f64 {
         let diff = left - right;
 
         diff * diff
@@ -115,8 +115,8 @@ impl<KP: KdTreePoint> KdTree<KP> {
 
     /// Can be used if you are sure that the tree is degenerated or if you will never again insert the nodes into the tree.
     pub fn gather_points_and_rebuild(&mut self) {
-        let mut points : Vec<KP> = vec![];
-        self.gather_points(0,&mut points);
+        let original = std::mem::replace(self, Self::empty());
+        let mut points: Vec<_> = original.into_iter().collect();
 
         self.rebuild_tree(&mut points);
     }
@@ -152,45 +152,55 @@ impl<KP: KdTreePoint> KdTree<KP> {
         self.nearest_search(node).0
     }
 
-    pub fn insert_nodes_and_rebuild(&mut self, nodes_to_add : &mut [KP]) {
-        let mut pts : Vec<KP> = vec![];
-        self.gather_points(0, &mut pts);
-        pts.extend(nodes_to_add.iter());
+    pub fn insert_nodes_and_rebuild<I: Iterator<Item = KP>>(&mut self, nodes_to_add: I) {
+        let original = std::mem::replace(self, Self::empty());
+        let mut points: Vec<_> = original
+            .into_iter()
+            .chain(nodes_to_add)
+            .collect();
 
-        self.rebuild_tree(&mut pts);
+        self.rebuild_tree(&mut points);
     }
 
-    pub fn insert_node(&mut self, node_to_add : KP) {
+    pub fn insert_node(&mut self, node_to_add: KP) {
         let mut current_index = 0;
         let dimension = self.node_adding_dimension;
-        let index_of_new_node = self.add_node(node_to_add, dimension,node_to_add.dims()[dimension]);
-        self.node_adding_dimension = ( dimension + 1) % node_to_add.dims().len();
+        let dims = node_to_add.dims().to_vec();
+        let index_of_new_node = self.add_node(node_to_add, dimension,dims[dimension]);
+
+        self.node_adding_dimension = (dimension + 1) % dims.len();
         let mut should_pop_node = false;
 
         let mut depth = 0;
         loop {
             depth +=1 ;
-            let current_node = &mut self.nodes[current_index];
 
-            if node_to_add.dims()[current_node.dimension] <= current_node.split_on {
-                if let Some(left_node_index) = current_node.left_node {
+            let nodes = &mut self.nodes[0 ..= current_index];
+
+            let current_node_dimension = nodes[current_index].dimension;
+            let current_node_split_on = nodes[current_index].split_on;
+            let current_node_left_node = nodes[current_index].left_node;
+            let current_node_right_node = nodes[current_index].right_node;
+
+            if dims[current_node_dimension] <= current_node_split_on {
+                if let Some(left_node_index) = current_node_left_node {
                     current_index = left_node_index
                 } else {
-                    if current_node.point.eq(&node_to_add) {
+                    if self.nodes[current_index].point.eq(&self.nodes[index_of_new_node].point) {
                         should_pop_node = true;
                     } else {
-                        current_node.left_node = Some(index_of_new_node);
+                        self.nodes[current_index].left_node = Some(index_of_new_node);
                     }
                     break;
                 }
             } else {
-                if let Some(right_node_index) = current_node.right_node {
+                if let Some(right_node_index) = current_node_right_node {
                     current_index = right_node_index
                 } else {
-                    if current_node.point.eq(&node_to_add) {
+                    if self.nodes[current_index].point.eq(&self.nodes[index_of_new_node].point) {
                         should_pop_node = true;
                     } else {
-                        current_node.right_node = Some(index_of_new_node);
+                        self.nodes[current_index].right_node = Some(index_of_new_node);
                     }
                     break;
                 }
@@ -253,7 +263,7 @@ impl<KP: KdTreePoint> KdTree<KP> {
 
         if splitting_index > 0 {
             let left_rect = bounds.clone_moving_max(pivot_value, bounds.get_widest_dim());
-            let left_child_id = self.build_tree(&mut nodes[0..splitting_index], &left_rect, depth+1);
+            let left_child_id = self.build_tree(&mut nodes[0 .. splitting_index], &left_rect, depth+1);
             self.nodes[node_id].left_node = Some(left_child_id);
         }
 
@@ -269,16 +279,11 @@ impl<KP: KdTreePoint> KdTree<KP> {
         node_id
     }
 
-    fn gather_points(&self, current_index: usize, points : &mut Vec<KP>){
-        points.push(self.nodes[current_index].point);
-
-        if let Some(left_index) = self.nodes[current_index].left_node {
-            self.gather_points(left_index, points);
-        }
-
-        if let Some(right_index) = self.nodes[current_index].right_node {
-            self.gather_points(right_index, points);
-        }
+    #[inline]
+    fn into_iter(self) -> impl Iterator<Item = KP> {
+        self.nodes
+            .into_iter()
+            .map(|node|node.point)
     }
 }
 
