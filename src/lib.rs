@@ -6,3 +6,6 @@ extern crate quickcheck;
 extern crate rand;
 
 pub mod kdtree;
+
+#[cfg(test)]
+mod bench;

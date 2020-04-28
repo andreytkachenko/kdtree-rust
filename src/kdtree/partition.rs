@@ -1,4 +1,4 @@
-use ::kdtree::*;
+use crate::kdtree::KdTreePoint;
 
 enum PointsWereOnSide {
     Left,
@@ -125,14 +125,9 @@ fn partition_kdtree<T: KdTreePoint>(vec: &mut [T], index_of_splitting_point: usi
 
 #[cfg(test)]
 mod tests {
-    use ::kdtree::*;
-    use ::kdtree::test_common::*;
-
-    use ::rand::distributions::{IndependentSample, Range};
-    use ::rand::*;
-
     use super::*;
-    use super::partition_kdtree;
+    use crate::kdtree::test_common::{Point1WithId, Point2WithId};
+    use rand::Rng;
 
     #[test]
     fn parition_kdtree_works() {
@@ -166,11 +161,11 @@ mod tests {
             if xs.len() == 0 {
                 return true;
             }
-            let between = Range::new(0, xs.len());
-            let mut rng = thread_rng();
+
+            let mut rng = rand::thread_rng();
 
             for _ in 0 .. 5 {
-                let random_splitting_index = between.ind_sample(&mut rng);
+                let random_splitting_index = rng.gen_range(0, xs.len());
 
                 let mut vec = vec.clone();
 

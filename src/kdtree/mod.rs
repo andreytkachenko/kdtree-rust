@@ -311,7 +311,7 @@ impl<T: KdTreePoint> KdTreeNode<T> {
 
 #[cfg(test)]
 mod tests {
-    use ::kdtree::test_common::Point2WithId;
+    use crate::kdtree::test_common::Point2WithId;
 
     use super::*;
 

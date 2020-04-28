@@ -7,17 +7,19 @@ keywords = ["tree", "dimension" , "nearest", "search", "neighbor"]
 readme = "README.md"
 license = "Unlicense"
 description = "K-dimensional tree implemented in Rust for fast NN querying."
+edition = "2018"
 
 [lib]
 name = "kdtree"
-path = "src//lib.rs"
+path = "src/lib.rs"
 bench = false
 
 [[bench]]
 name = "bench"
+path = "src/bench.rs"
 harness = false
 
 [dev-dependencies]
-quickcheck = "~0.3"
-rand = "~0.3.12"
-bencher = "~0.1.2"
+quickcheck = "~0.9"
+rand = "~0.7"
+bencher = "~0.1"

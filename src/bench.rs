@@ -1,4 +1,5 @@
-#[macro_use] extern crate bencher;
+#[macro_use] 
+extern crate bencher;
 extern crate kdtree;
 extern crate rand;
 

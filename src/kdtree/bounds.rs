@@ -1,4 +1,5 @@
-use ::kdtree::*;
+use crate::kdtree::KdTreePoint;
+
 
 #[derive(Clone, Copy)]
 pub struct Bounds {
@@ -91,8 +92,8 @@ impl Bounds {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use ::kdtree::test_common::*;
+    use super::Bounds;
+    use crate::kdtree::test_common::Point2WithId;
 
     #[test]
     fn bounds_test() {
