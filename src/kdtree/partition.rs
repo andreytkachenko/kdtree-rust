@@ -1,3 +1,4 @@
+use num_traits::Float;
 use crate::kdtree::KdTreePoint;
 
 enum PointsWereOnSide {
@@ -11,9 +12,9 @@ struct PartitionPointHelper {
     index_of_splitter: usize,
 }
 
-fn partition_sliding_midpoint_helper<T: KdTreePoint>(vec: &mut [T], midpoint_value: f64, partition_on_dimension: usize) -> PartitionPointHelper {
+fn partition_sliding_midpoint_helper<F: Float, T: KdTreePoint<F>>(vec: &mut [T], midpoint_value: F, partition_on_dimension: usize) -> PartitionPointHelper {
     let mut closest_index = 0;
-    let mut closest_distance = (vec[0].dims()[partition_on_dimension] - midpoint_value).abs();
+    let mut closest_distance = (vec[0].dim(partition_on_dimension) - midpoint_value).abs();
 
     const HAS_POINTS_ON_LEFT_SIDE: i32 = 0b01;
     const HAS_POINTS_ON_RIGHT_SIDE: i32 = 0b10;
@@ -22,13 +23,13 @@ fn partition_sliding_midpoint_helper<T: KdTreePoint>(vec: &mut [T], midpoint_val
 
     for i in 0..vec.len() {
         let p = vec.get(i).unwrap();
-        if p.dims()[partition_on_dimension] <= midpoint_value {
+        if p.dim(partition_on_dimension) <= midpoint_value {
             has_points_on_sides |= HAS_POINTS_ON_LEFT_SIDE;
         } else {
             has_points_on_sides |= HAS_POINTS_ON_RIGHT_SIDE;
         }
 
-        let dist = (p.dims()[partition_on_dimension] - midpoint_value).abs();
+        let dist = (p.dim(partition_on_dimension) - midpoint_value).abs();
 
         if dist < closest_distance {
             closest_distance = dist;
@@ -48,9 +49,9 @@ fn partition_sliding_midpoint_helper<T: KdTreePoint>(vec: &mut [T], midpoint_val
     }
 }
 
-pub fn partition_sliding_midpoint<T: KdTreePoint>(vec: &mut [T], midpoint_value: f64, partition_on_dimension: usize) -> usize {
+pub fn partition_sliding_midpoint<F: Float, T: KdTreePoint<F>>(vec: &mut [T], midpoint_value: F, partition_on_dimension: usize) -> usize {
     let vec_len = vec.len();
-    debug_assert!(vec[0].dims().len() > partition_on_dimension);
+    debug_assert!(vec[0].dims() > partition_on_dimension);
 
     if vec.len() == 1 {
         return 0;
@@ -74,12 +75,12 @@ pub fn partition_sliding_midpoint<T: KdTreePoint>(vec: &mut [T], midpoint_value:
     }
 }
 
-fn partition_kdtree<T: KdTreePoint>(vec: &mut [T], index_of_splitting_point: usize, partition_on_dimension: usize) -> usize {
+fn partition_kdtree<F: Float, T: KdTreePoint<F>>(vec: &mut [T], index_of_splitting_point: usize, partition_on_dimension: usize) -> usize {
     if vec.len() == 1 {
         return 0;
     }
 
-    let pivot = vec[index_of_splitting_point].dims()[partition_on_dimension];
+    let pivot = vec[index_of_splitting_point].dim(partition_on_dimension);
     let vec_len = vec.len();
 
     vec.swap(index_of_splitting_point, vec_len - 1);
@@ -90,11 +91,11 @@ fn partition_kdtree<T: KdTreePoint>(vec: &mut [T], index_of_splitting_point: usi
 
     //variant of Lomuto algo.
     loop {
-        while left <= right && vec[left].dims()[partition_on_dimension] <= pivot {
+        while left <= right && vec[left].dim(partition_on_dimension) <= pivot {
             left += 1;
         }
 
-        while right > left && vec[right].dims()[partition_on_dimension] > pivot {
+        while right > left && vec[right].dim(partition_on_dimension) > pivot {
             right -= 1;
         }
 
@@ -109,10 +110,10 @@ fn partition_kdtree<T: KdTreePoint>(vec: &mut [T], index_of_splitting_point: usi
         }
     }
 
-    if last_succesful_swap == vec_len - 1 && vec[right].dims()[partition_on_dimension] > pivot {
+    if last_succesful_swap == vec_len - 1 && vec[right].dim(partition_on_dimension) > pivot {
         vec.swap(right, last_succesful_swap);
         last_succesful_swap = right;
-    } else if vec[left].dims()[partition_on_dimension] > pivot {
+    } else if vec[left].dim(partition_on_dimension) > pivot {
         vec.swap(left, vec_len - 1);
         last_succesful_swap = left;
     } else {
@@ -228,16 +229,16 @@ mod tests {
     }
 
     fn assert_partition(v: &Vec<Point1WithId>, index_of_splitting_point: usize) -> bool {
-        let pivot = v[index_of_splitting_point].dims()[0];
+        let pivot = v[index_of_splitting_point].dim(0);
 
         for i in 0..index_of_splitting_point {
-            if v[i].dims()[0] > pivot {
+            if v[i].dim(0) > pivot {
                 return false;
             }
         }
 
         for i in index_of_splitting_point + 1..v.len() {
-            if v[i].dims()[0] < pivot {
+            if v[i].dim(0) < pivot {
                 return false;
             }
         }

@@ -1,38 +1,55 @@
 pub mod test_common;
-pub mod distance;
 
 mod partition;
 mod bounds;
 
 use self::bounds::*;
-use self::distance::*;
 
-use std::cmp;
+use num_traits::Float;
+use core::cmp;
 
-pub trait KdTreePoint: Copy + PartialEq {
-    fn dist_1d(left: f64, right: f64, _dim: usize) -> f64 {
+pub trait KdTreePoint<F: Float>: Copy + PartialEq {
+    fn dist_1d(left: F, right: F, _dim: usize) -> F {
         let diff = left - right;
 
         diff * diff
     }
 
-    fn dims(&self) -> &[f64];
-    fn dist(&self, other: &Self) -> f64 {
-        squared_euclidean(self.dims(), other.dims())
+    fn dims(&self) -> usize;
+    fn dim(&self, i: usize) -> F;
+    fn dist(&self, other: &Self) -> F {
+        let mut sum = F::zero();
+
+        for i in 0..self.dims() {
+            let x = self.dim(i);
+            let y = other.dim(i);
+            let diff = x - y;
+
+            sum = sum + diff * diff;
+        }
+
+        sum
     }
+
+    #[inline]
+    fn to_vec(&self) -> Vec<F> {
+        (0..self.dims())
+            .map(|x| self.dim(x))
+            .collect()
+    } 
 }
 
-pub struct NearestNeighboursIter<'a, T> {
-    range: f64,
-    kdtree: &'a KdTree<T>,
+pub struct NearestNeighboursIter<'a, F: Float, T> {
+    range: F,
+    kdtree: &'a KdTree<F, T>,
     ref_node: T,
     node_stack: Vec<usize>,
 }
 
-impl<'a, T> Iterator for NearestNeighboursIter<'a, T>
-    where T: KdTreePoint
+impl<'a, F: Float, T> Iterator for NearestNeighboursIter<'a, F, T>
+    where T: KdTreePoint<F>
 {
-    type Item = (f64, &'a T);
+    type Item = (F, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         let p = &self.ref_node;
@@ -42,7 +59,7 @@ impl<'a, T> Iterator for NearestNeighboursIter<'a, T>
             let node = &self.kdtree.nodes[node_idx];
 
             let splitting_value = node.split_on;
-            let point_splitting_dim_value = p.dims()[node.dimension];
+            let point_splitting_dim_value = p.dim(node.dimension);
             let distance_on_single_dimension = T::dist_1d(splitting_value, point_splitting_dim_value, node.dimension);
 
             if distance_on_single_dimension <= self.range {
@@ -71,15 +88,15 @@ impl<'a, T> Iterator for NearestNeighboursIter<'a, T>
     }
 }
 
-pub struct KdTree<KP> {
-    nodes: Vec<KdTreeNode<KP>>,
+pub struct KdTree<F: Float, KP> {
+    nodes: Vec<KdTreeNode<F, KP>>,
 
     node_adding_dimension: usize,
     node_depth_during_last_rebuild: usize,
     current_node_depth: usize,
 }
 
-impl<KP: KdTreePoint> KdTree<KP> {
+impl<F: Float, KP: KdTreePoint<F>> KdTree<F, KP> {
     #[inline]
     pub fn empty() -> Self {
         KdTree {
@@ -115,13 +132,13 @@ impl<KP: KdTreePoint> KdTree<KP> {
 
     /// Can be used if you are sure that the tree is degenerated or if you will never again insert the nodes into the tree.
     pub fn gather_points_and_rebuild(&mut self) {
-        let original = std::mem::replace(self, Self::empty());
+        let original = core::mem::replace(self, Self::empty());
         let mut points: Vec<_> = original.into_iter().collect();
 
         self.rebuild_tree(&mut points);
     }
 
-    pub fn nearest_search(&self, node: &KP) -> (f64, &KP) {
+    pub fn nearest_search(&self, node: &KP) -> (F, &KP) {
         let mut nearest_neighbor = 0usize;
         let mut best_distance = self.nodes[0].point.dist(&node);
 
@@ -130,7 +147,7 @@ impl<KP: KdTreePoint> KdTree<KP> {
         (best_distance, &self.nodes[nearest_neighbor].point)
     }
 
-    pub fn nearest_search_dist(&self, node: KP, dist: f64) -> NearestNeighboursIter<'_, KP> {
+    pub fn nearest_search_dist(&self, node: KP, dist: F) -> NearestNeighboursIter<'_, F, KP> {
         let mut node_stack = Vec::with_capacity(16);
         node_stack.push(0);
 
@@ -142,13 +159,15 @@ impl<KP: KdTreePoint> KdTree<KP> {
         }
     }
 
-    pub fn has_neighbor_in_range(&self, node: &KP, range: f64) -> bool {
+    #[inline]
+    pub fn has_neighbor_in_range(&self, node: &KP, range: F) -> bool {
         let squared_range = range * range;
 
         self.distance_squared_to_nearest(node) <= squared_range
     }
 
-    pub fn distance_squared_to_nearest(&self, node: &KP) -> f64 {
+    #[inline]
+    pub fn distance_squared_to_nearest(&self, node: &KP) -> F {
         self.nearest_search(node).0
     }
 
@@ -165,7 +184,7 @@ impl<KP: KdTreePoint> KdTree<KP> {
     pub fn insert_node(&mut self, node_to_add: KP) {
         let mut current_index = 0;
         let dimension = self.node_adding_dimension;
-        let dims = node_to_add.dims().to_vec();
+        let dims = node_to_add.to_vec();
         let index_of_new_node = self.add_node(node_to_add, dimension,dims[dimension]);
 
         self.node_adding_dimension = (dimension + 1) % dims.len();
@@ -211,16 +230,16 @@ impl<KP: KdTreePoint> KdTree<KP> {
             self.nodes.pop();
         }
 
-        if self.node_depth_during_last_rebuild as f64 * 4.0 < depth as f64  {
+        if F::from(self.node_depth_during_last_rebuild).unwrap() * F::from(4.0).unwrap() < F::from(depth).unwrap()  {
             self.gather_points_and_rebuild();
         }
     }
 
-    fn nearest_search_impl(&self, p: &KP, searched_index: usize, best_distance_squared: &mut f64, best_leaf_found: &mut usize) {
+    fn nearest_search_impl(&self, p: &KP, searched_index: usize, best_distance_squared: &mut F, best_leaf_found: &mut usize) {
         let node = &self.nodes[searched_index];
 
         let splitting_value = node.split_on;
-        let point_splitting_dim_value = p.dims()[node.dimension];
+        let point_splitting_dim_value = p.dim(node.dimension);
 
         let (closer_node, farther_node) = if point_splitting_dim_value <= splitting_value {
             (node.left_node, node.right_node)
@@ -247,16 +266,16 @@ impl<KP: KdTreePoint> KdTree<KP> {
         }
     }
 
-    fn add_node(&mut self, p: KP, dimension: usize, split_on: f64) -> usize {
+    fn add_node(&mut self, p: KP, dimension: usize, split_on: F) -> usize {
         let node = KdTreeNode::new(p, dimension, split_on);
 
         self.nodes.push(node);
         self.nodes.len() - 1
     }
 
-    fn build_tree(&mut self, nodes: &mut [KP], bounds: &Bounds, depth : usize) -> usize {
+    fn build_tree(&mut self, nodes: &mut [KP], bounds: &Bounds<F>, depth : usize) -> usize {
         let splitting_index = partition::partition_sliding_midpoint(nodes, bounds.get_midvalue_of_widest_dim(), bounds.get_widest_dim());
-        let pivot_value = nodes[splitting_index].dims()[bounds.get_widest_dim()];
+        let pivot_value = nodes[splitting_index].dim(bounds.get_widest_dim());
 
         let node_id = self.add_node(nodes[splitting_index], bounds.get_widest_dim(), pivot_value);
         let nodes_len = nodes.len();
@@ -287,17 +306,17 @@ impl<KP: KdTreePoint> KdTree<KP> {
     }
 }
 
-pub struct KdTreeNode<T> {
+pub struct KdTreeNode<F: Float, T> {
     left_node: Option<usize>,
     right_node: Option<usize>,
 
     point: T,
     dimension: usize,
-    split_on: f64
+    split_on: F
 }
 
-impl<T: KdTreePoint> KdTreeNode<T> {
-    fn new(p: T, splitting_dimension: usize, split_on_value: f64) -> KdTreeNode<T> {
+impl<F: Float, T: KdTreePoint<F>> KdTreeNode<F, T> {
+    fn new(p: T, splitting_dimension: usize, split_on_value: F) -> KdTreeNode<F, T> {
         KdTreeNode {
             left_node: None,
             right_node: None,
@@ -401,8 +420,8 @@ mod tests {
         assert_eq!(tree.nodes[0].dimension, 0);
 
         assert_eq!(tree.nodes[0].left_node.is_some(), true);
-        assert_eq!(tree.nodes[1].point.dims()[0], 1.);
-        assert_eq!(tree.nodes[2].point.dims()[0], -1.);
+        assert_eq!(tree.nodes[1].point.dim(0), 1.);
+        assert_eq!(tree.nodes[2].point.dim(0), -1.);
 
         assert_eq!(tree.nodes[0].right_node.is_some(), true);
     }

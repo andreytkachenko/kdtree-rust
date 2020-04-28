@@ -1,22 +1,19 @@
-extern crate kdtree;
-extern crate rand;
-
 use rand::Rng;
 
 use kdtree::kdtree::test_common::*;
 use kdtree::kdtree::KdTreePoint;
-use kdtree::kdtree::distance::squared_euclidean;
+use kdtree::kdtree::KdTree;
 
 fn gen_random() -> f64 {
     rand::thread_rng().gen_range(0., 1000.)
 }
 
 fn find_nn_with_linear_search(points : &Vec<Point3WithId>, find_for : Point3WithId) -> (f64, &Point3WithId) {
-    let mut best_found_distance =  squared_euclidean(find_for.dims(), points[0].dims());
+    let mut best_found_distance = find_for.dist(&points[0]);
     let mut closed_found_point = &points[0];
 
     for p in points {
-        let dist = squared_euclidean(find_for.dims(), p.dims());
+        let dist = find_for.dist(p);
 
         if dist < best_found_distance {
             best_found_distance = dist;
@@ -31,7 +28,7 @@ fn find_neigbours_with_linear_search(points : &Vec<Point3WithId>, find_for : Poi
     let mut result = Vec::new();
 
     for p in points {
-        let d = squared_euclidean(find_for.dims(), p.dims());
+        let d = find_for.dist(p);
 
         if d <= dist {
             result.push((d, p));
@@ -56,9 +53,9 @@ fn generate_points(point_count : usize) -> Vec<Point3WithId> {
 fn test_against_1000_random_points() {
     let point_count = 1000usize;
     let points = generate_points(point_count);
-    kdtree::kdtree::test_common::Point1WithId::new(0,0.);
+    Point1WithId::new(0,0.);
 
-    let tree = kdtree::kdtree::KdTree::new(&mut points.clone());
+    let tree = KdTree::new(&mut points.clone());
 
     //test points pushed into the tree, id should be equal.
     for i in 0 .. point_count {
@@ -83,8 +80,8 @@ fn test_incrementally_build_tree_against_built_at_once() {
     let point_count = 2000usize;
     let mut points = generate_points(point_count);
 
-    let tree_built_at_once = kdtree::kdtree::KdTree::new(&mut points.clone());
-    let mut tree_built_incrementally = kdtree::kdtree::KdTree::new(&mut points[0..1]);
+    let tree_built_at_once = KdTree::new(&mut points.clone());
+    let mut tree_built_incrementally = KdTree::new(&mut points[0..1]);
 
     for i in 1 .. point_count {
         let p = &points[i];
@@ -113,7 +110,7 @@ fn test_incrementally_build_tree_against_built_at_once() {
 fn test_neighbour_search_with_distance() {
     let point_count = 1000usize;
     let points = generate_points(point_count);
-    let tree = kdtree::kdtree::KdTree::new(&mut points.clone());
+    let tree = KdTree::new(&mut points.clone());
 
     for _ in 0 .. 500 {
         let dist = 100.0;

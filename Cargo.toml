@@ -16,10 +16,12 @@ bench = false
 
 [[bench]]
 name = "bench"
-path = "src/bench.rs"
 harness = false
 
 [dev-dependencies]
 quickcheck = "~0.9"
 rand = "~0.7"
 bencher = "~0.1"
+
+[dependencies]
+num-traits = "0.2"

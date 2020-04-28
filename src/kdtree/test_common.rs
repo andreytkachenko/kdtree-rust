@@ -15,10 +15,15 @@ impl Point3WithId {
     }
 }
 
-impl KdTreePoint for Point3WithId {
+impl KdTreePoint<f64> for Point3WithId {
     #[inline]
-    fn dims(&self) -> &[f64] {
-        return &self.dims;
+    fn dims(&self) -> usize {
+        self.dims.len()
+    }
+
+    #[inline]
+    fn dim(&self, i: usize) -> f64 {
+        self.dims[i]
     }
 }
 
@@ -37,10 +42,15 @@ impl Point2WithId {
     }
 }
 
-impl KdTreePoint for Point2WithId {
+impl KdTreePoint<f64> for Point2WithId {
     #[inline]
-    fn dims(&self) -> &[f64] {
-        return &self.dims;
+    fn dims(&self) -> usize {
+        self.dims.len()
+    }
+
+    #[inline]
+    fn dim(&self, i: usize) -> f64 {
+        self.dims[i]
     }
 }
 
@@ -59,9 +69,14 @@ impl Point1WithId {
     }
 }
 
-impl KdTreePoint for Point1WithId {
+impl KdTreePoint<f64> for Point1WithId {
     #[inline]
-    fn dims(&self) -> &[f64] {
-        return &self.dims;
+    fn dims(&self) -> usize {
+        self.dims.len()
+    }
+
+    #[inline]
+    fn dim(&self, i: usize) -> f64 {
+        self.dims[i]
     }
 }
