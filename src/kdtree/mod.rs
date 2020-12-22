@@ -90,7 +90,6 @@ impl<'a, F: Float, T> Iterator for NearestNeighboursIter<'a, F, T>
 
 pub struct KdTree<F: Float, KP> {
     nodes: Vec<KdTreeNode<F, KP>>,
-
     node_adding_dimension: usize,
     node_depth_during_last_rebuild: usize,
     current_node_depth: usize,
@@ -299,17 +298,25 @@ impl<F: Float, KP: KdTreePoint<F>> KdTree<F, KP> {
     }
 
     #[inline]
-    fn into_iter(self) -> impl Iterator<Item = KP> {
+    pub fn into_iter(self) -> impl Iterator<Item = KP> {
         self.nodes
             .into_iter()
             .map(|node|node.point)
     }
+
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = &KP> {
+        self.nodes
+            .iter()
+            .map(|node|&node.point)
+    }
 }
+
+
 
 pub struct KdTreeNode<F: Float, T> {
     left_node: Option<usize>,
     right_node: Option<usize>,
-
     point: T,
     dimension: usize,
     split_on: F
@@ -327,6 +334,8 @@ impl<F: Float, T: KdTreePoint<F>> KdTreeNode<F, T> {
         }
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
