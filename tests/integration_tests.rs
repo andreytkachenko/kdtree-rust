@@ -129,3 +129,20 @@ fn test_neighbour_search_with_distance() {
         assert_eq!(point_found_by_kdtree, found_by_linear_search);
     }
 }
+
+#[test]
+fn test_non_array_struct() {
+    // Arrange
+    let mut features = vec![];
+    for i in 0..100{
+        features.push( Features::new(1.*i as f64, 2.*i as f64, 3. * i as f64, 2. * i as f64, 1. * i as f64) );
+    }
+    let kd = KdTree::new(&mut features);
+
+    // Act
+    let ref test_feature = Features::new(0., 0., 0., 0., 0.);
+    let (distance, feature) = kd.nearest_search(test_feature);
+
+    // Assert
+    assert_eq!(test_feature, feature);
+}

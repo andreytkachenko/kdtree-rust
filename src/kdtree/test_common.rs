@@ -80,3 +80,41 @@ impl KdTreePoint<f64> for Point1WithId {
         self.dims[i]
     }
 }
+
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub struct Features{
+    feature_a: f64,
+    feature_b: f64,
+    feature_c: f64,
+    feature_r: f64,
+    feature_x: f64,
+}
+
+impl Features{
+    #[inline]
+    pub fn new(a: f64, b: f64, c: f64, r: f64, x: f64) -> Self{
+        Self{
+            feature_a: a, feature_b: b, feature_c: c, feature_r: r, feature_x: x
+        }
+    }
+}
+
+impl KdTreePoint<f64> for Features {
+    #[inline]
+    fn dims(&self) -> usize {
+        5usize
+    }
+
+    #[inline]
+    fn dim(&self, i: usize) -> f64 {
+        match i{
+            0 => self.feature_a,
+            1 => self.feature_b,
+            2 => self.feature_c,
+            3 => self.feature_r,
+            4 => self.feature_x,
+            _ => unreachable!()
+        }
+    }
+}
