@@ -1,9 +1,9 @@
 use num_traits::Float;
 use crate::kdtree::KdTreePoint;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Bounds<F: Float> {
-    pub bounds: [(F, F); 3],
+    pub bounds: Vec<(F, F)>,
 
     widest_dim: usize,
     midvalue_of_widest_dim: F,
@@ -12,7 +12,14 @@ pub struct Bounds<F: Float> {
 impl<F: Float> Bounds<F> {
     pub fn new_from_points<T: KdTreePoint<F>>(points: &[T]) -> Bounds<F> {
         let mut bounds = Bounds {
-            bounds: [(F::zero(), F::zero()), (F::zero(), F::zero()), (F::zero(), F::zero())],
+            bounds: {
+                let dims = points[0].dims();
+                let mut v = Vec::with_capacity(dims);
+                for _ in 0..dims{
+                    v.push((F::zero(), F::zero()));
+                }
+                v
+            },
             widest_dim: 0,
             midvalue_of_widest_dim: F::zero(),
         };
