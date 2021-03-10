@@ -145,4 +145,5 @@ fn test_non_array_struct() {
 
     // Assert
     assert_eq!(test_feature, feature);
+    assert_eq!(distance, 0.);
 }
